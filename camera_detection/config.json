@@ -1,0 +1,11 @@
+{
+    "protocol": "rtsp",
+    "dump_path": "./data",
+    "cameras": [
+    {
+            "name": "AGH-A0",
+            "interval": 5,
+            "dump": true
+        }
+    ]
+}
