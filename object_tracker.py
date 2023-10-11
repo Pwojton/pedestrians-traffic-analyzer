@@ -106,8 +106,13 @@ def main(_argv):
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = Image.fromarray(frame)
         else:
-            print('Video has ended or failed, try a different video format!')
-            break
+            print('Reloading video')
+            try:
+                vid = cv2.VideoCapture(int(video_path))
+            except:
+                vid = cv2.VideoCapture(video_path)
+            # break
+            continue
         frame_num += 1
         print('Frame #: ', frame_num)
         frame_size = frame.shape[:2]
