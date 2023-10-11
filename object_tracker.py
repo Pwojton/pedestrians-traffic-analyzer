@@ -33,14 +33,15 @@ flags.DEFINE_string('weights', './checkpoints/yolov4-416',
 flags.DEFINE_integer('size', 416, 'resize images to')
 flags.DEFINE_boolean('tiny', False, 'yolo or yolo-tiny')
 flags.DEFINE_string('model', 'yolov4', 'yolov3 or yolov4')
-flags.DEFINE_string('video', './data/video/test.mp4', 'path to input video or set to 0 for webcam')
+flags.DEFINE_string('video', 'http://live.uci.agh.edu.pl/video/stream2.cgi?start=1572349755',
+                    'path to input video or set to 0 for webcam')
 flags.DEFINE_string('output', None, 'path to output video')
 flags.DEFINE_string('output_format', 'XVID', 'codec used in VideoWriter when saving video to file')
 flags.DEFINE_float('iou', 0.45, 'iou threshold')
 flags.DEFINE_float('score', 0.50, 'score threshold')
 flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
-flags.DEFINE_boolean('count', False, 'count objects being tracked on screen')
+flags.DEFINE_boolean('count', True, 'count objects being tracked on screen')
 
 
 def main(_argv):
@@ -64,6 +65,7 @@ def main(_argv):
     STRIDES, ANCHORS, NUM_CLASS, XYSCALE = utils.load_config(FLAGS)
     input_size = FLAGS.size
     video_path = FLAGS.video
+    # video_path = "http://live.uci.agh.edu.pl/video/stream2.cgi?start=1572349755"
 
     # load tflite model if flag is set
     if FLAGS.framework == 'tflite':
@@ -97,6 +99,7 @@ def main(_argv):
 
     frame_num = 0
     # while video is running
+    f = open('results.txt', 'w');
     while True:
         return_value, frame = vid.read()
         if return_value:
@@ -161,11 +164,8 @@ def main(_argv):
         # read in all class names from config
         class_names = utils.read_class_names(cfg.YOLO.CLASSES)
 
-        # by default allow all classes in .names file
-        allowed_classes = list(class_names.values())
-
         # custom allowed classes (uncomment line below to customize tracker for only people)
-        # allowed_classes = ['person']
+        allowed_classes = ['person']
 
         # loop through objects and use class index to get class name, allow only classes in allowed_classes list
         names = []
@@ -182,6 +182,8 @@ def main(_argv):
         if FLAGS.count:
             cv2.putText(frame, "Objects being tracked: {}".format(count), (5, 35), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
                         (0, 255, 0), 2)
+            f.write('\nPersons ' + str(time.gmtime().tm_hour) + ':' + str(time.gmtime().tm_min) + ':' + str(
+                time.gmtime().tm_sec) + '==' + str(count))
             print("Objects being tracked: {}".format(count))
         # delete detections that are not in allowed_classes
         bboxes = np.delete(bboxes, deleted_indx, axis=0)
@@ -191,6 +193,7 @@ def main(_argv):
         features = encoder(frame, bboxes)
         detections = [Detection(bbox, score, class_name, feature) for bbox, score, class_name, feature in
                       zip(bboxes, scores, names, features)]
+
 
         # initialize color map
         cmap = plt.get_cmap('tab20b')
@@ -233,7 +236,7 @@ def main(_argv):
                                                                                                         int(bbox[3]))))
 
         # calculate frames per second of running detections
-        fps = 1.0 / (time.time() - start_time)
+        fps = 10000.0 / (time.time() - start_time)
         print("FPS: %.2f" % fps)
         result = np.asarray(frame)
         result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
@@ -245,6 +248,7 @@ def main(_argv):
         if FLAGS.output:
             out.write(result)
         if cv2.waitKey(1) & 0xFF == ord('q'): break
+    f.close()
     cv2.destroyAllWindows()
 
 
