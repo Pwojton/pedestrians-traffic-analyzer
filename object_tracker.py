@@ -37,8 +37,8 @@ flags.DEFINE_string('video', 'http://live.uci.agh.edu.pl/video/stream2.cgi?start
                     'path to input video or set to 0 for webcam')
 flags.DEFINE_string('output', None, 'path to output video')
 flags.DEFINE_string('output_format', 'XVID', 'codec used in VideoWriter when saving video to file')
-flags.DEFINE_float('iou', 0.45, 'iou threshold')
-flags.DEFINE_float('score', 0.50, 'score threshold')
+flags.DEFINE_float('iou', 0.20, 'iou threshold')
+flags.DEFINE_float('score', 0.20, 'score threshold')
 flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
 flags.DEFINE_boolean('count', True, 'count objects being tracked on screen')
@@ -65,7 +65,7 @@ def main(_argv):
     STRIDES, ANCHORS, NUM_CLASS, XYSCALE = utils.load_config(FLAGS)
     input_size = FLAGS.size
     video_path = FLAGS.video
-    # video_path = "http://live.uci.agh.edu.pl/video/stream2.cgi?start=1572349755"
+
 
     # load tflite model if flag is set
     if FLAGS.framework == 'tflite':
