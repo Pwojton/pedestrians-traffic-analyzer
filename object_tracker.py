@@ -1,5 +1,7 @@
 import os
 
+from database import push_count_data
+
 # comment out below line to enable tensorflow logging outputs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import time
@@ -190,6 +192,11 @@ def main(_argv):
             f.write('\nPersons ' + str(time.gmtime().tm_hour) + ':' + str(time.gmtime().tm_min) + ':' + str(
                 time.gmtime().tm_sec) + '==' + str(count))
             print("Objects being tracked: {}".format(count))
+
+        # Adding data to the db
+        push_count_data(count)
+
+
         # delete detections that are not in allowed_classes
         bboxes = np.delete(bboxes, deleted_indx, axis=0)
         scores = np.delete(scores, deleted_indx, axis=0)
