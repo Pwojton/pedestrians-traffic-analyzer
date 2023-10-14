@@ -1,4 +1,5 @@
 import os
+from utils.pedestrians_counter import PedestriansCounter
 
 from database import push_count_data
 
@@ -59,6 +60,9 @@ def main(_argv):
     metric = nn_matching.NearestNeighborDistanceMetric("cosine", max_cosine_distance, nn_budget)
     # initialize tracker
     tracker = Tracker(metric)
+
+    # Initialize pedestrians counter
+    pedestrians_count = PedestriansCounter()
 
     # load configuration for object detector
     config = ConfigProto()
@@ -228,6 +232,10 @@ def main(_argv):
                 continue
             bbox = track.to_tlbr()
             class_name = track.get_class()
+
+            if track.track_id and bbox[1]:
+                pedestrians_count.count_pedestrians(track.track_id, int(bbox[1]))
+                pedestrians_count.count_coming_up_or_down(track.track_id, int(bbox[1]))
 
             # draw bbox on screen
             color = colors[int(track.track_id) % len(colors)]
