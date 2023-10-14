@@ -1,11 +1,12 @@
 import os
 from utils.pedestrians_counter import PedestriansCounter
 
-from database import push_count_data
+from database import push_counted_pedestrians, push_pedestrians_coming_up_or_down
 
 # comment out below line to enable tensorflow logging outputs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import time
+import datetime
 import tensorflow as tf
 
 physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -62,7 +63,7 @@ def main(_argv):
     tracker = Tracker(metric)
 
     # Initialize pedestrians counter
-    pedestrians_count = PedestriansCounter()
+    pedestrians_counter = PedestriansCounter()
 
     # load configuration for object detector
     config = ConfigProto()
@@ -103,9 +104,9 @@ def main(_argv):
         codec = cv2.VideoWriter_fourcc(*FLAGS.output_format)
         out = cv2.VideoWriter(FLAGS.output, codec, fps, (width, height))
 
+    start_detection_time = datetime.datetime.now()
     frame_num = 0
     # while video is running
-    f = open('results.txt', 'w');
     while True:
         return_value, frame = vid.read()
         if return_value:
@@ -193,12 +194,10 @@ def main(_argv):
         if FLAGS.count:
             cv2.putText(frame, "Objects being tracked: {}".format(count), (5, 35), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
                         (0, 255, 0), 2)
-            f.write('\nPersons ' + str(time.gmtime().tm_hour) + ':' + str(time.gmtime().tm_min) + ':' + str(
-                time.gmtime().tm_sec) + '==' + str(count))
             print("Objects being tracked: {}".format(count))
 
         # Adding data to the db
-        push_count_data(count)
+        push_counted_pedestrians(count, start_detection_time + datetime.timedelta(seconds=frame_num/25))
 
 
         # delete detections that are not in allowed_classes
@@ -226,6 +225,8 @@ def main(_argv):
         tracker.predict()
         tracker.update(detections)
 
+        cv2.line(frame, (0,350), (1000, 350), 20, 2)
+
         # update tracks
         for track in tracker.tracks:
             if not track.is_confirmed() or track.time_since_update > 1:
@@ -236,6 +237,8 @@ def main(_argv):
             if track.track_id and bbox[1]:
                 pedestrians_count.count_pedestrians(track.track_id, int(bbox[1]))
                 pedestrians_count.count_coming_up_or_down(track.track_id, int(bbox[1]))
+                pedestrians_counter.count_pedestrians(track.track_id, int(bbox[1]))
+                pedestrians_counter.count_coming_up_or_down(track.track_id, int(bbox[1]))
 
             # draw bbox on screen
             color = colors[int(track.track_id) % len(colors)]
@@ -255,9 +258,6 @@ def main(_argv):
                                                                                                         int(bbox[2]),
                                                                                                         int(bbox[3]))))
 
-        # calculate frames per second of running detections
-        fps = 10000.0 / (time.time() - start_time)
-        print("FPS: %.2f" % fps)
         result = np.asarray(frame)
         result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
@@ -268,9 +268,9 @@ def main(_argv):
         if FLAGS.output:
             out.write(result)
         if cv2.waitKey(1) & 0xFF == ord('q'): break
-    f.close()
     cv2.destroyAllWindows()
-
+    stop_detection_time = start_detection_time + datetime.timedelta(seconds=frame_num/25)
+    push_pedestrians_coming_up_or_down(stop_detection_time, stop_detection_time, len(pedestrians_counter.pedestrians_coming_up), len(pedestrians_counter.pedestrians_coming_down))
 
 if __name__ == '__main__':
     try:
