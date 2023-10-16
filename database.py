@@ -23,5 +23,5 @@ def push_pedestrians_coming_up_or_down(start_time, end_time, coming_up, coming_d
                             port=db_port)
     cur = conn.cursor()
     cur.execute(
-        f"INSERT INTO pedestrians_coming_up_or_down (start_time, end_time, ped_count_up, ped_count_down) VALUES ('{start_time}', '{end_time}', '{coming_up}', '{coming_down}')")
+        f"INSERT INTO pedestrians_coming_up_or_down (start_time, stop_time, ped_count_up, ped_count_down) VALUES ('{start_time}', '{end_time}', '{coming_up}', '{coming_down}')")
     conn.commit()

@@ -105,7 +105,9 @@ def main(_argv):
         out = cv2.VideoWriter(FLAGS.output, codec, fps, (width, height))
 
     start_detection_time = datetime.datetime.now()
+    start_interval_time = start_detection_time
     frame_num = 0
+    count_in_one_second = []
     # while video is running
     while True:
         return_value, frame = vid.read()
@@ -118,7 +120,8 @@ def main(_argv):
                 vid = cv2.VideoCapture(int(video_path))
             except:
                 vid = cv2.VideoCapture(video_path)
-            # break
+            start_detection_time = datetime.datetime.now()
+            start_interval_time = start_detection_time
             continue
         frame_num += 1
         print('Frame #: ', frame_num)
@@ -197,8 +200,20 @@ def main(_argv):
             print("Objects being tracked: {}".format(count))
 
         # Adding data to the db
-        push_counted_pedestrians(count, start_detection_time + datetime.timedelta(seconds=frame_num/25))
 
+        count_in_one_second.append(count)
+        stop_detection_time = start_detection_time + datetime.timedelta(seconds=frame_num / 25)
+        if len(count_in_one_second) == 25:
+            push_counted_pedestrians(max(count_in_one_second), stop_detection_time)
+            count_in_one_second = []
+
+        if frame_num % 7500 == 0:
+            push_pedestrians_coming_up_or_down(start_interval_time, stop_detection_time,
+                                               len(pedestrians_counter.pedestrians_coming_up),
+                                               len(pedestrians_counter.pedestrians_coming_down))
+            pedestrians_counter.pedestrians_coming_up = []
+            pedestrians_counter.pedestrians_coming_down = []
+            start_interval_time = stop_detection_time
 
         # delete detections that are not in allowed_classes
         bboxes = np.delete(bboxes, deleted_indx, axis=0)
@@ -208,7 +223,6 @@ def main(_argv):
         features = encoder(frame, bboxes)
         detections = [Detection(bbox, score, class_name, feature) for bbox, score, class_name, feature in
                       zip(bboxes, scores, names, features)]
-
 
         # initialize color map
         cmap = plt.get_cmap('tab20b')
@@ -225,7 +239,8 @@ def main(_argv):
         tracker.predict()
         tracker.update(detections)
 
-        cv2.line(frame, (0,350), (1000, 350), 20, 2)
+        cv2.line(frame, (0, 340), (1000, 340), 20, 2)
+        cv2.line(frame, (0, 360), (1000, 360), 20, 2)
 
         # update tracks
         for track in tracker.tracks:
@@ -235,8 +250,6 @@ def main(_argv):
             class_name = track.get_class()
 
             if track.track_id and bbox[1]:
-                pedestrians_count.count_pedestrians(track.track_id, int(bbox[1]))
-                pedestrians_count.count_coming_up_or_down(track.track_id, int(bbox[1]))
                 pedestrians_counter.count_pedestrians(track.track_id, int(bbox[1]))
                 pedestrians_counter.count_coming_up_or_down(track.track_id, int(bbox[1]))
 
@@ -269,8 +282,6 @@ def main(_argv):
             out.write(result)
         if cv2.waitKey(1) & 0xFF == ord('q'): break
     cv2.destroyAllWindows()
-    stop_detection_time = start_detection_time + datetime.timedelta(seconds=frame_num/25)
-    push_pedestrians_coming_up_or_down(stop_detection_time, stop_detection_time, len(pedestrians_counter.pedestrians_coming_up), len(pedestrians_counter.pedestrians_coming_down))
 
 if __name__ == '__main__':
     try:
