@@ -1,34 +1,105 @@
-class Pedestrian:
-    def __new__(cls, *args, **kwargs):
-        return super().__new__(cls)
+class Spot:
+    def __init__(self, spot_number, first_point, second_point):
+        self.spot_number = spot_number
+        self.first_point = first_point
+        self.second_point = second_point
 
-    def __init__(self, y, ped_id):
-        self.y = y
+
+spot_1 = Spot(1, (830, 350), (1100, 720))
+spot_2 = Spot(2, (1110, 470), (1280, 620))
+spot_3 = Spot(3, (1110, 320), (1280, 470))
+spot_4 = Spot(4, (810, 110), (990, 310))
+spot_5 = Spot(5, (1000, 40), (1080, 240))
+spot_6 = Spot(6, (440, 350), (810, 720))
+spot_8 = Spot(8, (180, 40), (260, 240))
+spot_10 = Spot(10, (270, 110), (430, 310))
+spot_11 = Spot(11, (0, 320), (120, 445))
+spot_12 = Spot(12,  (0, 445), (120, 620))
+spot_13 = Spot(13, (130, 350), (420, 720))
+spot_14 = Spot(14, (440, 140), (820, 340))
+
+
+class Pedestrian:
+    def __init__(self, x_first, y_first, first_frame, x_last, y_last, last_frame, ped_id):
+        self.y_first = y_first
+        self.x_first = x_first
+        self.first_frame = first_frame
         self.ped_id = ped_id
+        self.y_last = y_last
+        self.x_last = x_last
+        self.last_frame = last_frame
+        self.spots = []
 
 
 class PedestriansCounter:
-    pedestrians = []
-    pedestrians_coming_down = []
-    pedestrians_coming_up = []
-    y_threshold = 350
-    ped_reached_y_threshold = []
+    all_pedestrians = []
 
-    def count_pedestrians(self, pedestrian_id, y):
-        pedestrian = Pedestrian(y, pedestrian_id)
-        if not any(obj.ped_id == pedestrian.ped_id for obj in self.pedestrians):
-            self.pedestrians.append(pedestrian)
-        if not any(obj.ped_id == pedestrian.ped_id for obj in
-                   self.ped_reached_y_threshold) and y + 15 > self.y_threshold > y - 15:
-            self.ped_reached_y_threshold.append(pedestrian)
+    def gather_all_pedestrians(self, x, y, frame_number, ped_id):
+        if not any(obj.ped_id == ped_id for obj in self.all_pedestrians):
+            pedestrian = Pedestrian(x, y, frame_number, x, y, frame_number, ped_id)
+            self.all_pedestrians.append(pedestrian)
+        else:
+            self.__update_pedestrian(x, y, frame_number, ped_id)
+        self.__check_pedestrians_enter_and_exit(frame_number)
 
-    def count_coming_up_or_down(self, pedestrian_id, y):
-        if any(obj.ped_id == pedestrian_id for obj in self.ped_reached_y_threshold):
-            found_pedestrian = next((obj for obj in self.pedestrians if obj.ped_id == pedestrian_id), None)
+    def __update_pedestrian(self, x, y, frame_number, ped_id):
+        pedestrian = next((pedestrian for pedestrian in self.all_pedestrians if pedestrian.ped_id == ped_id), None)
+        if pedestrian is not None:
+            pedestrian.last_frame = frame_number
+            pedestrian.x_last = x
+            pedestrian.y_last = y
+        else:
+            return
 
-            # if self.y_threshold > y > found_pedestrian.y and found_pedestrian.ped_id not in self.pedestrians_coming_down:
-            if y > found_pedestrian.y and found_pedestrian.ped_id not in self.pedestrians_coming_down:
-                self.pedestrians_coming_down.append(found_pedestrian.ped_id)
+    def __check_pedestrians_enter_and_exit(self, frame_number):
+        for pedestrian in self.all_pedestrians:
+            spot_nr = check_which_spot_was_crossed(pedestrian.x_last, pedestrian.y_last)
+            if spot_nr and (len(pedestrian.spots) == 0 or (pedestrian.spots[-1]) and spot_nr != pedestrian.spots[-1]):
+                pedestrian.spots.append(spot_nr)
 
-            if y < found_pedestrian.y and found_pedestrian.ped_id not in self.pedestrians_coming_up:
-                self.pedestrians_coming_up.append(found_pedestrian.ped_id)
+            if frame_number - pedestrian.last_frame > 150:
+                print("____________________________________")
+                print("Pedestrian id: ", pedestrian.ped_id)
+                print("Spots: ", pedestrian.spots)
+                print("____________________________________")
+                self.all_pedestrians.remove(pedestrian)
+                continue
+
+
+def check_which_spot_was_crossed(pedestrian_x, pedestrian_y):
+    if (spot_1.first_point[0] < pedestrian_x < spot_1.second_point[0] and
+            spot_1.first_point[1] < pedestrian_y < spot_1.second_point[1]):
+        return 1
+    if (spot_2.first_point[0] < pedestrian_x < spot_2.second_point[0] and
+            spot_2.first_point[1] < pedestrian_y < spot_2.second_point[1]):
+        return 2
+    if (spot_3.first_point[0] < pedestrian_x < spot_3.second_point[0] and
+            spot_3.first_point[1] < pedestrian_y < spot_3.second_point[1]):
+        return 3
+    if (spot_4.first_point[0] < pedestrian_x < spot_4.second_point[0] and
+            spot_4.first_point[1] < pedestrian_y < spot_4.second_point[1]):
+        return 4
+    if (spot_5.first_point[0] < pedestrian_x < spot_5.second_point[0] and
+            spot_5.first_point[1] < pedestrian_y < spot_5.second_point[1]):
+        return 5
+    if (spot_6.first_point[0] < pedestrian_x < spot_6.second_point[0] and
+            spot_6.first_point[1] < pedestrian_y < spot_6.second_point[1]):
+        return 6
+    if (spot_8.first_point[0] < pedestrian_x < spot_8.second_point[0] and
+            spot_8.first_point[1] < pedestrian_y < spot_8.second_point[1]):
+        return 8
+    if (spot_10.first_point[0] < pedestrian_x < spot_10.second_point[0] and
+            spot_10.first_point[1] < pedestrian_y < spot_10.second_point[1]):
+        return 10
+    if (spot_11.first_point[0] < pedestrian_x < spot_11.second_point[0] and
+            spot_11.first_point[1] < pedestrian_y < spot_11.second_point[1]):
+        return 11
+    if (spot_12.first_point[0] < pedestrian_x < spot_12.second_point[0] and
+            spot_12.first_point[1] < pedestrian_y < spot_12.second_point[1]):
+        return 12
+    if (spot_13.first_point[0] < pedestrian_x < spot_13.second_point[0] and
+            spot_13.first_point[1] < pedestrian_y < spot_13.second_point[1]):
+        return 13
+    if (spot_14.first_point[0] < pedestrian_x < spot_14.second_point[0] and
+            spot_14.first_point[1] < pedestrian_y < spot_14.second_point[1]):
+        return 14

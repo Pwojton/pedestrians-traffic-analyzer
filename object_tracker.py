@@ -41,11 +41,11 @@ flags.DEFINE_string('video', 'http://live.uci.agh.edu.pl/video/stream2.cgi?start
                     'path to input video or set to 0 for webcam')
 flags.DEFINE_string('output', None, 'path to output video')
 flags.DEFINE_string('output_format', 'XVID', 'codec used in VideoWriter when saving video to file')
-flags.DEFINE_float('iou', 0.40, 'iou threshold')
-flags.DEFINE_float('score', 0.40, 'score threshold')
+flags.DEFINE_float('iou', 0.45, 'iou threshold')
+flags.DEFINE_float('score', 0.45, 'score threshold')
 flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
-flags.DEFINE_boolean('count', True, 'count objects being tracked on screen')
+flags.DEFINE_boolean('count', False, 'count objects being tracked on screen')
 
 
 def main(_argv):
@@ -72,7 +72,7 @@ def main(_argv):
     STRIDES, ANCHORS, NUM_CLASS, XYSCALE = utils.load_config(FLAGS)
     input_size = FLAGS.size
     video_path = FLAGS.video
-
+    # video_path = 'data/video/test4.avi'
 
     # load tflite model if flag is set
     if FLAGS.framework == 'tflite':
@@ -239,8 +239,19 @@ def main(_argv):
         tracker.predict()
         tracker.update(detections)
 
-        cv2.line(frame, (0, 340), (1000, 340), 20, 2)
-        cv2.line(frame, (0, 360), (1000, 360), 20, 2)
+        cv2.rectangle(frame, (270, 110), (430, 310), (255, 0, 0), 2)  # 10
+        cv2.rectangle(frame, (810, 110), (990, 310), (255, 0, 0), 2)  # 4
+        cv2.rectangle(frame, (180, 40), (260, 240), (255, 0, 0), 2)  # 8
+        cv2.rectangle(frame, (1000, 40), (1080, 240), (255, 0, 0), 2)  # 5
+        cv2.rectangle(frame, (440, 350), (810, 720), (255, 0, 0), 2)  # 6 środek schodów
+        cv2.rectangle(frame, (830, 350), (1100, 720), (255, 0, 0), 2)  # 1
+        cv2.rectangle(frame, (1110, 320), (1280, 450), (255, 0, 0), 2)  # 3
+        cv2.rectangle(frame, (1110, 450), (1280, 620), (255, 0, 0), 2)  # 2
+        cv2.rectangle(frame, (130, 350), (420, 720), (255, 0, 0), 2)  # 13
+        cv2.rectangle(frame, (0, 450), (120, 620), (255, 0, 0), 2)  # 12
+        cv2.rectangle(frame, (0, 320), (120, 450), (255, 0, 0), 2)  # 11
+        cv2.rectangle(frame, (440, 140), (800, 340), (255, 0, 0), 2)  # 14
+
 
         # update tracks
         for track in tracker.tracks:
@@ -250,8 +261,7 @@ def main(_argv):
             class_name = track.get_class()
 
             if track.track_id and bbox[1]:
-                pedestrians_counter.count_pedestrians(track.track_id, int(bbox[1]))
-                pedestrians_counter.count_coming_up_or_down(track.track_id, int(bbox[1]))
+                pedestrians_counter.gather_all_pedestrians(int(bbox[0]), int(bbox[1]), frame_num, track.track_id)
 
             # draw bbox on screen
             color = colors[int(track.track_id) % len(colors)]
@@ -271,6 +281,11 @@ def main(_argv):
                                                                                                         int(bbox[2]),
                                                                                                         int(bbox[3]))))
 
+        # print('______________')
+        # for obj in pedestrians_counter.all_pedestrians:
+        #     print(obj.ped_id)
+        # print('______________')
+
         result = np.asarray(frame)
         result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
@@ -282,6 +297,7 @@ def main(_argv):
             out.write(result)
         if cv2.waitKey(1) & 0xFF == ord('q'): break
     cv2.destroyAllWindows()
+
 
 if __name__ == '__main__':
     try:
