@@ -37,15 +37,16 @@ flags.DEFINE_string('weights', './checkpoints/yolov4-416',
 flags.DEFINE_integer('size', 416, 'resize images to')
 flags.DEFINE_boolean('tiny', False, 'yolo or yolo-tiny')
 flags.DEFINE_string('model', 'yolov4', 'yolov3 or yolov4')
-flags.DEFINE_string('video', 'http://live.uci.agh.edu.pl/video/stream2.cgi?start=1572349755',
+# flags.DEFINE_string('video', 'http://live.uci.agh.edu.pl/video/stream2.cgi?start=1572349755',
+flags.DEFINE_string('video', './data/video/test4.avi',
                     'path to input video or set to 0 for webcam')
 flags.DEFINE_string('output', None, 'path to output video')
 flags.DEFINE_string('output_format', 'XVID', 'codec used in VideoWriter when saving video to file')
-flags.DEFINE_float('iou', 0.45, 'iou threshold')
+flags.DEFINE_float('iou', 0.3, 'iou threshold')
 flags.DEFINE_float('score', 0.45, 'score threshold')
 flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
-flags.DEFINE_boolean('count', False, 'count objects being tracked on screen')
+flags.DEFINE_boolean('count', True, 'count objects being tracked on screen')
 
 
 def main(_argv):
@@ -252,6 +253,8 @@ def main(_argv):
         cv2.rectangle(frame, (0, 320), (120, 450), (255, 0, 0), 2)  # 11
         cv2.rectangle(frame, (440, 140), (800, 340), (255, 0, 0), 2)  # 14
 
+        # cv2.rectangle(frame, (580, 140), (650, 300), (255, 0, 0), 2)  # Staszic
+
 
         # update tracks
         for track in tracker.tracks:
@@ -259,6 +262,9 @@ def main(_argv):
                 continue
             bbox = track.to_tlbr()
             class_name = track.get_class()
+
+            if 580 < bbox[0] < 650 and 130 < bbox[1] < 150:
+                continue
 
             if track.track_id and bbox[1]:
                 pedestrians_counter.gather_all_pedestrians(int(bbox[0]), int(bbox[1]), frame_num, track.track_id)

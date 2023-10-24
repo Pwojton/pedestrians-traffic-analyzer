@@ -29,6 +29,7 @@ class Pedestrian:
         self.x_last = x_last
         self.last_frame = last_frame
         self.spots = []
+        self.alias = [] # id osob albo referencje
 
 
 class PedestriansCounter:
