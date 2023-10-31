@@ -1,5 +1,7 @@
 import os
+import json
 from utils.pedestrians_counter import PedestriansCounter
+from camera_dump.camera_dump import CameraDump
 
 from database import push_counted_pedestrians, push_pedestrians_coming_up_or_down
 
@@ -37,13 +39,15 @@ flags.DEFINE_string('weights', './checkpoints/yolov4-416',
 flags.DEFINE_integer('size', 416, 'resize images to')
 flags.DEFINE_boolean('tiny', False, 'yolo or yolo-tiny')
 flags.DEFINE_string('model', 'yolov4', 'yolov3 or yolov4')
-# flags.DEFINE_string('video', 'http://live.uci.agh.edu.pl/video/stream2.cgi?start=1572349755',
-flags.DEFINE_string('video', './data/video/test4.avi',
+flags.DEFINE_string('video', 'http://live.uci.agh.edu.pl/video/stream2.cgi?start=1572349755',
                     'path to input video or set to 0 for webcam')
+# flags.DEFINE_string('video', './data/video/test4.avi',
+#                     'path to input video or set to 0 for webcam')
 flags.DEFINE_string('output', None, 'path to output video')
 flags.DEFINE_string('output_format', 'XVID', 'codec used in VideoWriter when saving video to file')
-flags.DEFINE_float('iou', 0.3, 'iou threshold')
-flags.DEFINE_float('score', 0.45, 'score threshold')
+flags.DEFINE_float('iou', 0.4, 'iou threshold')
+flags.DEFINE_float('score', 0.4, 'sco'
+                                 're threshold')
 flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
 flags.DEFINE_boolean('count', True, 'count objects being tracked on screen')
@@ -109,201 +113,204 @@ def main(_argv):
     start_interval_time = start_detection_time
     frame_num = 0
     count_in_one_second = []
+
+    ####
     # while video is running
+    config = json.loads(open('config.json').read())
+    camera_dumps = []
+    if config:
+        # Read all the parameters from config
+        print("Config file loaded!")
+        protocol = config['protocol']
+        camera_name = config['name']
+        interval = config['interval']
+        video_uri = f"http://live.uci.agh.edu.pl/video/stream2.cgi?start=1572349755"
+        camera_dumps.append(CameraDump(camera_name, video_uri, interval))
     while True:
-        return_value, frame = vid.read()
-        if return_value:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            image = Image.fromarray(frame)
-        else:
-            print('Reloading video')
-            try:
-                vid = cv2.VideoCapture(int(video_path))
-            except:
-                vid = cv2.VideoCapture(video_path)
-            start_detection_time = datetime.datetime.now()
-            start_interval_time = start_detection_time
-            continue
-        frame_num += 1
-        print('Frame #: ', frame_num)
-        frame_size = frame.shape[:2]
-        image_data = cv2.resize(frame, (input_size, input_size))
-        image_data = image_data / 255.
-        image_data = image_data[np.newaxis, ...].astype(np.float32)
-        start_time = time.time()
-
-        # run detections on tflite if flag is set
-        if FLAGS.framework == 'tflite':
-            interpreter.set_tensor(input_details[0]['index'], image_data)
-            interpreter.invoke()
-            pred = [interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
-            # run detections using yolov3 if flag is set
-            if FLAGS.model == 'yolov3' and FLAGS.tiny == True:
-                boxes, pred_conf = filter_boxes(pred[1], pred[0], score_threshold=0.25,
-                                                input_shape=tf.constant([input_size, input_size]))
-            else:
-                boxes, pred_conf = filter_boxes(pred[0], pred[1], score_threshold=0.25,
-                                                input_shape=tf.constant([input_size, input_size]))
-        else:
-            batch_data = tf.constant(image_data)
-            pred_bbox = infer(batch_data)
-            for key, value in pred_bbox.items():
-                boxes = value[:, :, 0:4]
-                pred_conf = value[:, :, 4:]
-
-        boxes, scores, classes, valid_detections = tf.image.combined_non_max_suppression(
-            boxes=tf.reshape(boxes, (tf.shape(boxes)[0], -1, 1, 4)),
-            scores=tf.reshape(
-                pred_conf, (tf.shape(pred_conf)[0], -1, tf.shape(pred_conf)[-1])),
-            max_output_size_per_class=50,
-            max_total_size=50,
-            iou_threshold=FLAGS.iou,
-            score_threshold=FLAGS.score
-        )
-
-        # convert data to numpy arrays and slice out unused elements
-        num_objects = valid_detections.numpy()[0]
-        bboxes = boxes.numpy()[0]
-        bboxes = bboxes[0:int(num_objects)]
-        scores = scores.numpy()[0]
-        scores = scores[0:int(num_objects)]
-        classes = classes.numpy()[0]
-        classes = classes[0:int(num_objects)]
-
-        # format bounding boxes from normalized ymin, xmin, ymax, xmax ---> xmin, ymin, width, height
-        original_h, original_w, _ = frame.shape
-        bboxes = utils.format_boxes(bboxes, original_h, original_w)
-
-        # store all predictions in one parameter for simplicity when calling functions
-        pred_bbox = [bboxes, scores, classes, num_objects]
-
-        # read in all class names from config
-        class_names = utils.read_class_names(cfg.YOLO.CLASSES)
-
-        # custom allowed classes (uncomment line below to customize tracker for only people)
-        allowed_classes = ['person']
-
-        # loop through objects and use class index to get class name, allow only classes in allowed_classes list
-        names = []
-        deleted_indx = []
-        for i in range(num_objects):
-            class_indx = int(classes[i])
-            class_name = class_names[class_indx]
-            if class_name not in allowed_classes:
-                deleted_indx.append(i)
-            else:
-                names.append(class_name)
-        names = np.array(names)
-        count = len(names)
-        if FLAGS.count:
-            cv2.putText(frame, "Objects being tracked: {}".format(count), (5, 35), cv2.FONT_HERSHEY_COMPLEX_SMALL, 2,
-                        (0, 255, 0), 2)
-            print("Objects being tracked: {}".format(count))
-
-        # Adding data to the db
-
-        count_in_one_second.append(count)
-        stop_detection_time = start_detection_time + datetime.timedelta(seconds=frame_num / 25)
-        if len(count_in_one_second) == 25:
-            push_counted_pedestrians(max(count_in_one_second), stop_detection_time)
-            count_in_one_second = []
-
-        if frame_num % 7500 == 0:
-            push_pedestrians_coming_up_or_down(start_interval_time, stop_detection_time,
-                                               len(pedestrians_counter.pedestrians_coming_up),
-                                               len(pedestrians_counter.pedestrians_coming_down))
-            pedestrians_counter.pedestrians_coming_up = []
-            pedestrians_counter.pedestrians_coming_down = []
-            start_interval_time = stop_detection_time
-
-        # delete detections that are not in allowed_classes
-        bboxes = np.delete(bboxes, deleted_indx, axis=0)
-        scores = np.delete(scores, deleted_indx, axis=0)
-
-        # encode yolo detections and feed to tracker
-        features = encoder(frame, bboxes)
-        detections = [Detection(bbox, score, class_name, feature) for bbox, score, class_name, feature in
-                      zip(bboxes, scores, names, features)]
-
-        # initialize color map
-        cmap = plt.get_cmap('tab20b')
-        colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
-
-        # run non-maxima supression
-        boxs = np.array([d.tlwh for d in detections])
-        scores = np.array([d.confidence for d in detections])
-        classes = np.array([d.class_name for d in detections])
-        indices = preprocessing.non_max_suppression(boxs, classes, nms_max_overlap, scores)
-        detections = [detections[i] for i in indices]
-
-        # Call the tracker
-        tracker.predict()
-        tracker.update(detections)
-
-        cv2.rectangle(frame, (270, 110), (430, 310), (255, 0, 0), 2)  # 10
-        cv2.rectangle(frame, (810, 110), (990, 310), (255, 0, 0), 2)  # 4
-        cv2.rectangle(frame, (180, 40), (260, 240), (255, 0, 0), 2)  # 8
-        cv2.rectangle(frame, (1000, 40), (1080, 240), (255, 0, 0), 2)  # 5
-        cv2.rectangle(frame, (440, 350), (810, 720), (255, 0, 0), 2)  # 6 środek schodów
-        cv2.rectangle(frame, (830, 350), (1100, 720), (255, 0, 0), 2)  # 1
-        cv2.rectangle(frame, (1110, 320), (1280, 450), (255, 0, 0), 2)  # 3
-        cv2.rectangle(frame, (1110, 450), (1280, 620), (255, 0, 0), 2)  # 2
-        cv2.rectangle(frame, (130, 350), (420, 720), (255, 0, 0), 2)  # 13
-        cv2.rectangle(frame, (0, 450), (120, 620), (255, 0, 0), 2)  # 12
-        cv2.rectangle(frame, (0, 320), (120, 450), (255, 0, 0), 2)  # 11
-        cv2.rectangle(frame, (440, 140), (800, 340), (255, 0, 0), 2)  # 14
-
-        # cv2.rectangle(frame, (580, 140), (650, 300), (255, 0, 0), 2)  # Staszic
-
-
-        # update tracks
-        for track in tracker.tracks:
-            if not track.is_confirmed() or track.time_since_update > 1:
+        for c in camera_dumps:
+            frame = c.dump_frame()
+            if frame is None:
                 continue
-            bbox = track.to_tlbr()
-            class_name = track.get_class()
+            frame_num += 1
+            print('Frame #: ', frame_num)
+            frame_size = frame.shape[:2]
+            image_data = cv2.resize(frame, (input_size, input_size))
+            image_data = image_data / 255.
+            image_data = image_data[np.newaxis, ...].astype(np.float32)
+            start_time = time.time()
 
-            if 580 < bbox[0] < 650 and 130 < bbox[1] < 150:
-                continue
+            # run detections on tflite if flag is set
+            if FLAGS.framework == 'tflite':
+                interpreter.set_tensor(input_details[0]['index'], image_data)
+                interpreter.invoke()
+                pred = [interpreter.get_tensor(output_details[i]['index']) for i in range(len(output_details))]
+                # run detections using yolov3 if flag is set
+                if FLAGS.model == 'yolov3' and FLAGS.tiny == True:
+                    boxes, pred_conf = filter_boxes(pred[1], pred[0], score_threshold=0.25,
+                                                    input_shape=tf.constant([input_size, input_size]))
+                else:
+                    boxes, pred_conf = filter_boxes(pred[0], pred[1], score_threshold=0.25,
+                                                    input_shape=tf.constant([input_size, input_size]))
+            else:
+                batch_data = tf.constant(image_data)
+                pred_bbox = infer(batch_data)
+                for key, value in pred_bbox.items():
+                    boxes = value[:, :, 0:4]
+                    pred_conf = value[:, :, 4:]
 
-            if track.track_id and bbox[1]:
-                pedestrians_counter.gather_all_pedestrians(int(bbox[0]), int(bbox[1]), frame_num, track.track_id)
+            boxes, scores, classes, valid_detections = tf.image.combined_non_max_suppression(
+                boxes=tf.reshape(boxes, (tf.shape(boxes)[0], -1, 1, 4)),
+                scores=tf.reshape(
+                    pred_conf, (tf.shape(pred_conf)[0], -1, tf.shape(pred_conf)[-1])),
+                max_output_size_per_class=50,
+                max_total_size=50,
+                iou_threshold=FLAGS.iou,
+                score_threshold=FLAGS.score
+            )
 
-            # draw bbox on screen
-            color = colors[int(track.track_id) % len(colors)]
-            color = [i * 255 for i in color]
-            cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), color, 2)
-            cv2.rectangle(frame, (int(bbox[0]), int(bbox[1] - 30)),
-                          (int(bbox[0]) + (len(class_name) + len(str(track.track_id))) * 17, int(bbox[1])), color, -1)
-            cv2.putText(frame, class_name + "-" + str(track.track_id), (int(bbox[0]), int(bbox[1] - 10)), 0, 0.75,
-                        (255, 255, 255), 2)
+            # convert data to numpy arrays and slice out unused elements
+            num_objects = valid_detections.numpy()[0]
+            bboxes = boxes.numpy()[0]
+            bboxes = bboxes[0:int(num_objects)]
+            scores = scores.numpy()[0]
+            scores = scores[0:int(num_objects)]
+            classes = classes.numpy()[0]
+            classes = classes[0:int(num_objects)]
 
-            # if enable info flag then print details about each track
-            if FLAGS.info:
-                print("Tracker ID: {}, Class: {},  BBox Coords (xmin, ymin, xmax, ymax): {}".format(str(track.track_id),
-                                                                                                    class_name, (
-                                                                                                        int(bbox[0]),
-                                                                                                        int(bbox[1]),
-                                                                                                        int(bbox[2]),
-                                                                                                        int(bbox[3]))))
+            # format bounding boxes from normalized ymin, xmin, ymax, xmax ---> xmin, ymin, width, height
+            original_h, original_w, _ = frame.shape
+            bboxes = utils.format_boxes(bboxes, original_h, original_w)
 
-        # print('______________')
-        # for obj in pedestrians_counter.all_pedestrians:
-        #     print(obj.ped_id)
-        # print('______________')
+            # store all predictions in one parameter for simplicity when calling functions
+            pred_bbox = [bboxes, scores, classes, num_objects]
 
-        result = np.asarray(frame)
-        result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            # read in all class names from config
+            class_names = utils.read_class_names(cfg.YOLO.CLASSES)
 
-        if not FLAGS.dont_show:
-            cv2.imshow("Output Video", result)
+            # custom allowed classes (uncomment line below to customize tracker for only people)
+            allowed_classes = ['person']
 
-        # if output flag is set, save video file
-        if FLAGS.output:
-            out.write(result)
-        if cv2.waitKey(1) & 0xFF == ord('q'): break
+            # loop through objects and use class index to get class name, allow only classes in allowed_classes list
+            names = []
+            deleted_indx = []
+            for i in range(num_objects):
+                class_indx = int(classes[i])
+                class_name = class_names[class_indx]
+                if class_name not in allowed_classes:
+                    deleted_indx.append(i)
+                else:
+                    names.append(class_name)
+            names = np.array(names)
+            count = len(names)
+            if FLAGS.count:
+                cv2.putText(frame, "Objects being tracked: {}".format(count), (5, 35), cv2.FONT_HERSHEY_COMPLEX_SMALL,
+                            2,
+                            (0, 255, 0), 2)
+                print("Objects being tracked: {}".format(count))
+
+            # Adding data to the db
+
+            count_in_one_second.append(count)
+            stop_detection_time = start_detection_time + datetime.timedelta(seconds=frame_num / 25)
+            if len(count_in_one_second) == 25:
+                push_counted_pedestrians(max(count_in_one_second), stop_detection_time)
+                count_in_one_second = []
+
+            if frame_num % 7500 == 0:
+                push_pedestrians_coming_up_or_down(start_interval_time, stop_detection_time,
+                                                   len(pedestrians_counter.pedestrians_coming_up),
+                                                   len(pedestrians_counter.pedestrians_coming_down))
+                pedestrians_counter.pedestrians_coming_up = []
+                pedestrians_counter.pedestrians_coming_down = []
+                start_interval_time = stop_detection_time
+
+            # delete detections that are not in allowed_classes
+            bboxes = np.delete(bboxes, deleted_indx, axis=0)
+            scores = np.delete(scores, deleted_indx, axis=0)
+
+            # encode yolo detections and feed to tracker
+            features = encoder(frame, bboxes)
+            detections = [Detection(bbox, score, class_name, feature) for bbox, score, class_name, feature in
+                          zip(bboxes, scores, names, features)]
+
+            # initialize color map
+            cmap = plt.get_cmap('tab20b')
+            colors = [cmap(i)[:3] for i in np.linspace(0, 1, 20)]
+
+            # run non-maxima supression
+            boxs = np.array([d.tlwh for d in detections])
+            scores = np.array([d.confidence for d in detections])
+            classes = np.array([d.class_name for d in detections])
+            indices = preprocessing.non_max_suppression(boxs, classes, nms_max_overlap, scores)
+            detections = [detections[i] for i in indices]
+
+            # Call the tracker
+            tracker.predict()
+            tracker.update(detections)
+
+            cv2.rectangle(frame, (270, 110), (430, 310), (255, 0, 0), 2)  # 10
+            cv2.rectangle(frame, (810, 110), (990, 310), (255, 0, 0), 2)  # 4
+            cv2.rectangle(frame, (180, 40), (260, 240), (255, 0, 0), 2)  # 8
+            cv2.rectangle(frame, (1000, 40), (1080, 240), (255, 0, 0), 2)  # 5
+            cv2.rectangle(frame, (440, 350), (810, 720), (255, 0, 0), 2)  # 6 środek schodów
+            cv2.rectangle(frame, (830, 350), (1100, 720), (255, 0, 0), 2)  # 1
+            cv2.rectangle(frame, (1110, 320), (1280, 450), (255, 0, 0), 2)  # 3
+            cv2.rectangle(frame, (1110, 450), (1280, 620), (255, 0, 0), 2)  # 2
+            cv2.rectangle(frame, (130, 350), (420, 720), (255, 0, 0), 2)  # 13
+            cv2.rectangle(frame, (0, 450), (120, 620), (255, 0, 0), 2)  # 12
+            cv2.rectangle(frame, (0, 320), (120, 450), (255, 0, 0), 2)  # 11
+            cv2.rectangle(frame, (440, 140), (800, 340), (255, 0, 0), 2)  # 14
+
+            # cv2.rectangle(frame, (580, 140), (650, 300), (255, 0, 0), 2)  # Staszic
+
+            # update tracks
+            for track in tracker.tracks:
+                if not track.is_confirmed() or track.time_since_update > 1:
+                    continue
+                bbox = track.to_tlbr()
+                class_name = track.get_class()
+
+                if 580 < bbox[0] < 650 and 130 < bbox[1] < 150:
+                    continue
+
+                if track.track_id and bbox[1]:
+                    pedestrians_counter.gather_all_pedestrians(int(bbox[0]), int(bbox[1]), frame_num, track.track_id)
+
+                # draw bbox on screen
+                color = colors[int(track.track_id) % len(colors)]
+                color = [i * 255 for i in color]
+                cv2.rectangle(frame, (int(bbox[0]), int(bbox[1])), (int(bbox[2]), int(bbox[3])), color, 2)
+                cv2.rectangle(frame, (int(bbox[0]), int(bbox[1] - 30)),
+                              (int(bbox[0]) + (len(class_name) + len(str(track.track_id))) * 17, int(bbox[1])), color,
+                              -1)
+                cv2.putText(frame, class_name + "-" + str(track.track_id), (int(bbox[0]), int(bbox[1] - 10)), 0, 0.75,
+                            (255, 255, 255), 2)
+
+                # if enable info flag then print details about each track
+                if FLAGS.info:
+                    print("Tracker ID: {}, Class: {},  BBox Coords (xmin, ymin, xmax, ymax): {}".format(
+                        str(track.track_id),
+                        class_name, (
+                            int(bbox[0]),
+                            int(bbox[1]),
+                            int(bbox[2]),
+                            int(bbox[3]))))
+
+            result = np.asarray(frame)
+            # result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+            if not FLAGS.dont_show:
+                cv2.imshow("Output Video", result)
+
+            # if output flag is set, save video file
+            if FLAGS.output:
+                out.write(result)
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+    else:
+        print("No config file provided! Exiting app...")
+
     cv2.destroyAllWindows()
-
 
 if __name__ == '__main__':
     try:

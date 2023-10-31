@@ -1,0 +1,5 @@
+{
+  "protocol": "rtsp",
+  "name": "Cam2",
+  "interval": 0
+}
