@@ -8,17 +8,17 @@ class Spot:
         self.second_point = second_point
 
 
-spot_1 = Spot(1, (830, 350), (1100, 720))
-spot_2 = Spot(2, (1110, 470), (1280, 620))
-spot_3 = Spot(3, (1110, 320), (1280, 470))
+spot_1 = Spot(1, (830, 350), (1060, 720))
+spot_2 = Spot(2, (1060, 470), (1280, 620))
+spot_3 = Spot(3, (1060, 320), (1280, 470))
 spot_4 = Spot(4, (810, 110), (990, 310))
 spot_5 = Spot(5, (1000, 40), (1080, 240))
 spot_6 = Spot(6, (440, 350), (810, 720))
 spot_8 = Spot(8, (180, 40), (260, 240))
 spot_10 = Spot(10, (270, 110), (430, 310))
-spot_11 = Spot(11, (0, 320), (120, 445))
-spot_12 = Spot(12, (0, 445), (120, 620))
-spot_13 = Spot(13, (130, 350), (420, 720))
+spot_11 = Spot(11, (0, 320), (170, 445))
+spot_12 = Spot(12, (0, 445), (170, 620))
+spot_13 = Spot(13, (170, 350), (420, 720))
 spot_14 = Spot(14, (440, 140), (820, 340))
 
 
@@ -70,7 +70,6 @@ class PedestriansCounter:
             if pedestrian.x_last - 80 < ped.x_last < pedestrian.x_last + 80 and pedestrian.y_last - 70 < ped.y_last < pedestrian.y_last + 70:
                 if not any(i == ped_id for i in ped.alias):
                     ped.alias.append(ped_id)
-
 
     def __check_pedestrians_enter_and_exit(self, frame_number):
         for pedestrian in self.all_pedestrians:

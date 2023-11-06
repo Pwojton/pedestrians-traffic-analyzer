@@ -45,8 +45,8 @@ flags.DEFINE_string('video', 'http://live.uci.agh.edu.pl/video/stream2.cgi?start
 #                     'path to input video or set to 0 for webcam')
 flags.DEFINE_string('output', None, 'path to output video')
 flags.DEFINE_string('output_format', 'XVID', 'codec used in VideoWriter when saving video to file')
-flags.DEFINE_float('iou', 0.4, 'iou threshold')
-flags.DEFINE_float('score', 0.4, 'sco'
+flags.DEFINE_float('iou', 0.2, 'iou threshold')
+flags.DEFINE_float('score', 0.2, 'sco'
                                  're threshold')
 flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
@@ -124,7 +124,8 @@ def main(_argv):
         protocol = config['protocol']
         camera_name = config['name']
         interval = config['interval']
-        video_uri = f"http://live.uci.agh.edu.pl/video/stream2.cgi?start=1572349755"
+        # video_uri = f"http://live.uci.agh.edu.pl/video/stream2.cgi?start=1572349755"
+        video_uri = f"./data/video/test4.avi"
         camera_dumps.append(CameraDump(camera_name, video_uri, interval))
     while True:
         for c in camera_dumps:
@@ -251,17 +252,17 @@ def main(_argv):
             cv2.rectangle(frame, (270, 110), (430, 310), (255, 0, 0), 2)  # 10
             cv2.rectangle(frame, (810, 110), (990, 310), (255, 0, 0), 2)  # 4
             cv2.rectangle(frame, (180, 40), (260, 240), (255, 0, 0), 2)  # 8
-            cv2.rectangle(frame, (1000, 40), (1080, 240), (255, 0, 0), 2)  # 5
-            cv2.rectangle(frame, (440, 350), (810, 720), (255, 0, 0), 2)  # 6 środek schodów
-            cv2.rectangle(frame, (830, 350), (1100, 720), (255, 0, 0), 2)  # 1
-            cv2.rectangle(frame, (1110, 320), (1280, 450), (255, 0, 0), 2)  # 3
-            cv2.rectangle(frame, (1110, 450), (1280, 620), (255, 0, 0), 2)  # 2
-            cv2.rectangle(frame, (130, 350), (420, 720), (255, 0, 0), 2)  # 13
-            cv2.rectangle(frame, (0, 450), (120, 620), (255, 0, 0), 2)  # 12
-            cv2.rectangle(frame, (0, 320), (120, 450), (255, 0, 0), 2)  # 11
+            cv2.rectangle(frame, (1000, 40), (1060, 240), (255, 0, 0), 2)  # 5
+            cv2.rectangle(frame, (440, 350), (810, 720), (255, 0, 0), 2)  # 6
+            cv2.rectangle(frame, (830, 350), (1060, 720), (255, 0, 0), 2)  # 1
+            cv2.rectangle(frame, (1060, 320), (1280, 450), (255, 0, 0), 2)  # 3
+            cv2.rectangle(frame, (1060, 450), (1280, 620), (255, 0, 0), 2)  # 2
+            cv2.rectangle(frame, (170, 350), (420, 720), (255, 0, 0), 2)  # 13
+            cv2.rectangle(frame, (0, 450), (170, 620), (255, 0, 0), 2)  # 12
+            cv2.rectangle(frame, (0, 320), (170, 450), (255, 0, 0), 2)  # 11
             cv2.rectangle(frame, (440, 140), (800, 340), (255, 0, 0), 2)  # 14
 
-            # cv2.rectangle(frame, (580, 140), (650, 300), (255, 0, 0), 2)  # Staszic
+            # cv2.rectangle(frame, (580, 130), (650, 160), (255, 0, 0), 2)  # Staszic
 
             # update tracks
             for track in tracker.tracks:
@@ -270,7 +271,8 @@ def main(_argv):
                 bbox = track.to_tlbr()
                 class_name = track.get_class()
 
-                if 580 < bbox[0] < 650 and 130 < bbox[1] < 150:
+                if 560 < bbox[0] < 670 and 130 < bbox[1] < 160:
+                    count = count - 1
                     continue
 
                 if track.track_id and bbox[1]:
