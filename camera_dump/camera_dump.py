@@ -4,7 +4,7 @@ from collections import deque
 from threading import Thread
 from time import time
 # from absl import app, flags, logging
-from absl.flags import FLAGS
+# from absl.flags import FLAGS
 
 import cv2
 
@@ -22,7 +22,7 @@ class CameraDump:
     :type deque_size: int
     """
 
-    def __init__(self, camera_name, camera_uri, interval=2, deque_size=1):
+    def __init__(self, camera_name, camera_uri, interval=2, deque_size=25):
         self.camera_name = camera_name
 
         # Initialize deque used to store frames from the stream

@@ -33,18 +33,19 @@ class Pedestrian:
         self.last_frame = last_frame
         self.spots = []
         self.alias = []
+        self.isAliased = False
 
 
 class PedestriansCounter:
     all_pedestrians: List[Pedestrian] = []
 
     def gather_all_pedestrians(self, x, y, frame_number, ped_id):
-        if not any(obj.ped_id == ped_id for obj in self.all_pedestrians) and not(560 < x < 670 and 130 < y < 160):
+        if not any(obj.ped_id == ped_id for obj in self.all_pedestrians) and not (560 < x < 670 and 130 < y < 160):
             pedestrian = Pedestrian(x, y, frame_number, x, y, frame_number, ped_id)
             self.all_pedestrians.append(pedestrian)
         else:
             self.__update_pedestrian(x, y, frame_number, ped_id)
-            self.__check_pedestrians_doubling(frame_number, ped_id)
+            self.__check_pedestrians_doubling(ped_id)
         self.__check_pedestrians_enter_and_exit(frame_number)
 
     def __update_pedestrian(self, x, y, frame_number, ped_id):
@@ -57,19 +58,22 @@ class PedestriansCounter:
         else:
             return
 
-    def __check_pedestrians_doubling(self, frame_number, ped_id):
+    def __check_pedestrians_doubling(self, ped_id):
         pedestrian: Pedestrian = next(
             (pedestrian for pedestrian in self.all_pedestrians if pedestrian.ped_id == ped_id), None)
+
         for ped in self.all_pedestrians:
-            if ped.ped_id == ped_id:
+            if ped.ped_id == ped_id or pedestrian.isAliased:
                 continue
-            if frame_number < ped.last_frame:
+            if pedestrian.last_frame < ped.last_frame:
                 continue
-            if ped.last_frame < frame_number - 10:
+            if not pedestrian.last_frame - 30 < ped.last_frame < pedestrian.last_frame - 1:
                 continue
-            if pedestrian.x_last - 80 < ped.x_last < pedestrian.x_last + 80 and pedestrian.y_last - 70 < ped.y_last < pedestrian.y_last + 70:
+
+            if pedestrian.x_last - 300 < ped.x_last < pedestrian.x_last + 300 and pedestrian.y_last - 200 < ped.y_last < pedestrian.y_last + 200:
                 if not any(i == ped_id for i in ped.alias):
                     ped.alias.append(ped_id)
+                    ped.isAliased = True
 
     def __check_pedestrians_enter_and_exit(self, frame_number):
         for pedestrian in self.all_pedestrians:
@@ -77,12 +81,13 @@ class PedestriansCounter:
             if spot_nr and (len(pedestrian.spots) == 0 or (pedestrian.spots[-1]) and spot_nr != pedestrian.spots[-1]):
                 pedestrian.spots.append(spot_nr)
 
-            if frame_number - pedestrian.last_frame > 150:
+            if frame_number - pedestrian.last_frame > 75:
                 print("____________________________________")
                 print("Pedestrian id: ", pedestrian.ped_id)
                 print("Spots: ", pedestrian.spots)
                 print("Aliases: ", pedestrian.alias)
                 print("____________________________________")
+
                 self.all_pedestrians.remove(pedestrian)
                 continue
 
