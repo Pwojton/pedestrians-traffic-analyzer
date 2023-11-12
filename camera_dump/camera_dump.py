@@ -22,7 +22,7 @@ class CameraDump:
     :type deque_size: int
     """
 
-    def __init__(self, camera_name, camera_uri, interval=2, deque_size=25):
+    def __init__(self, camera_name, camera_uri, interval=2, deque_size=1):
         self.camera_name = camera_name
 
         # Initialize deque used to store frames from the stream
