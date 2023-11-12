@@ -252,11 +252,13 @@ def main(_argv):
             cv2.rectangle(frame, (1000, 40), (1060, 240), (255, 0, 0), 2)  # 5
             cv2.rectangle(frame, (440, 350), (810, 720), (255, 0, 0), 2)  # 6
             cv2.rectangle(frame, (830, 350), (1040, 720), (255, 0, 0), 2)  # 1
+            cv2.rectangle(frame, (1040, 620), (1280, 720), (255, 0, 0), 2)  # 1b
             cv2.rectangle(frame, (1040, 320), (1280, 450), (255, 0, 0), 2)  # 3
             cv2.rectangle(frame, (1040, 450), (1280, 620), (255, 0, 0), 2)  # 2
             cv2.rectangle(frame, (0, 320), (210, 450), (255, 0, 0), 2)  # 11
             cv2.rectangle(frame, (0, 450), (210, 620), (255, 0, 0), 2)  # 12
             cv2.rectangle(frame, (210, 350), (420, 720), (255, 0, 0), 2)  # 13
+            cv2.rectangle(frame, (0, 620), (210, 720), (255, 0, 0), 2)  # 13b
             cv2.rectangle(frame, (440, 140), (800, 340), (255, 0, 0), 2)  # 14
 
             # cv2.rectangle(frame, (580, 130), (650, 160), (255, 0, 0), 2)  # Staszic

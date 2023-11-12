@@ -11,6 +11,7 @@ class Spot:
 
 
 spot_1 = Spot(1, (830, 350), (1040, 720))
+spot_1b = Spot(111, (1040, 620), (1280, 720))
 spot_2 = Spot(2, (1040, 450), (1280, 620))
 spot_3 = Spot(3, (1040, 320), (1280, 450))
 spot_4 = Spot(4, (810, 110), (990, 310))
@@ -21,6 +22,7 @@ spot_10 = Spot(10, (270, 110), (430, 310))
 spot_11 = Spot(11, (0, 320), (210, 450))
 spot_12 = Spot(12, (0, 450), (210, 620))
 spot_13 = Spot(13, (210, 350), (420, 720))
+spot_13b = Spot(1313, (0, 620), (210, 720))
 spot_14 = Spot(14, (440, 140), (820, 340))
 
 
@@ -97,7 +99,10 @@ class PedestriansCounter:
 
 def check_which_spot_was_crossed(pedestrian_x, pedestrian_y):
     if (spot_1.first_point[0] < pedestrian_x < spot_1.second_point[0] and
-            spot_1.first_point[1] < pedestrian_y < spot_1.second_point[1]):
+        spot_1.first_point[1] < pedestrian_y < spot_1.second_point[1]) or (
+        spot_1b.first_point[0] < pedestrian_x < spot_1b.second_point[0] and
+        spot_1b.first_point[1] < pedestrian_y < spot_1b.second_point[1]
+    ):
         return 1
     if (spot_2.first_point[0] < pedestrian_x < spot_2.second_point[0] and
             spot_2.first_point[1] < pedestrian_y < spot_2.second_point[1]):
@@ -127,7 +132,10 @@ def check_which_spot_was_crossed(pedestrian_x, pedestrian_y):
             spot_12.first_point[1] < pedestrian_y < spot_12.second_point[1]):
         return 12
     if (spot_13.first_point[0] < pedestrian_x < spot_13.second_point[0] and
-            spot_13.first_point[1] < pedestrian_y < spot_13.second_point[1]):
+        spot_13.first_point[1] < pedestrian_y < spot_13.second_point[1]) or (
+        spot_13b.first_point[0] < pedestrian_x < spot_13b.second_point[0] and
+        spot_13b.first_point[1] < pedestrian_y < spot_13b.second_point[1]
+    ):
         return 13
     if (spot_14.first_point[0] < pedestrian_x < spot_14.second_point[0] and
             spot_14.first_point[1] < pedestrian_y < spot_14.second_point[1]):
