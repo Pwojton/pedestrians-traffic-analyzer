@@ -1,4 +1,6 @@
+import datetime
 from typing import List
+from database import push_pedestrian_track
 
 
 class Spot:
@@ -24,6 +26,7 @@ spot_14 = Spot(14, (440, 140), (820, 340))
 
 class Pedestrian:
     def __init__(self, x_first, y_first, first_frame, x_last, y_last, last_frame, ped_id):
+        self.start_time = datetime.datetime.now()
         self.y_first = y_first
         self.x_first = x_first
         self.first_frame = first_frame
@@ -82,12 +85,12 @@ class PedestriansCounter:
                 pedestrian.spots.append(spot_nr)
 
             if frame_number - pedestrian.last_frame > 75:
-                print("____________________________________")
-                print("Pedestrian id: ", pedestrian.ped_id)
-                print("Spots: ", pedestrian.spots)
-                print("Aliases: ", pedestrian.alias)
-                print("____________________________________")
-
+                push_pedestrian_track(pedestrian.start_time,
+                                      datetime.datetime.now(),
+                                      pedestrian.ped_id,
+                                      pedestrian.spots,
+                                      pedestrian.alias
+                                      )
                 self.all_pedestrians.remove(pedestrian)
                 continue
 

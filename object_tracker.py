@@ -3,7 +3,7 @@ import json
 from utils.pedestrians_counter import PedestriansCounter
 from camera_dump.camera_dump import CameraDump
 
-from database import push_counted_pedestrians, push_pedestrians_coming_up_or_down
+from database import push_counted_pedestrians, push_pedestrian_track
 
 # comment out below line to enable tensorflow logging outputs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -45,8 +45,8 @@ flags.DEFINE_string('video', 'http://live.uci.agh.edu.pl/video/stream2.cgi?start
 #                     'path to input video or set to 0 for webcam')
 flags.DEFINE_string('output', None, 'path to output video')
 flags.DEFINE_string('output_format', 'XVID', 'codec used in VideoWriter when saving video to file')
-flags.DEFINE_float('iou', 0.2, 'iou threshold')
-flags.DEFINE_float('score', 0.2, 'sco'
+flags.DEFINE_float('iou', 0.25, 'iou threshold')
+flags.DEFINE_float('score', 0.25, 'sco'
                                  're threshold')
 flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
@@ -124,8 +124,8 @@ def main(_argv):
         protocol = config['protocol']
         camera_name = config['name']
         interval = config['interval']
-        # video_uri = f"http://live.uci.agh.edu.pl/video/stream2.cgi?start=1572349755"
-        video_uri = f"./data/video/test4.avi"
+        video_uri = f"http://live.uci.agh.edu.pl/video/stream2.cgi?start=1572349755"
+        # video_uri = f"./data/video/test4.avi"
         camera_dumps.append(CameraDump(camera_name, video_uri, interval))
     while True:
         for c in camera_dumps:
@@ -218,9 +218,9 @@ def main(_argv):
                 count_in_one_second = []
 
             if frame_num % 7500 == 0:
-                push_pedestrians_coming_up_or_down(start_interval_time, stop_detection_time,
-                                                   len(pedestrians_counter.pedestrians_coming_up),
-                                                   len(pedestrians_counter.pedestrians_coming_down))
+                push_pedestrian_track(start_interval_time, stop_detection_time,
+                                      len(pedestrians_counter.pedestrians_coming_up),
+                                      len(pedestrians_counter.pedestrians_coming_down))
                 pedestrians_counter.pedestrians_coming_up = []
                 pedestrians_counter.pedestrians_coming_down = []
                 start_interval_time = stop_detection_time
