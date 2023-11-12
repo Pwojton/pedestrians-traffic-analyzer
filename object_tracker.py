@@ -3,7 +3,7 @@ import json
 from utils.pedestrians_counter import PedestriansCounter
 from camera_dump.camera_dump import CameraDump
 
-from database import push_counted_pedestrians, push_pedestrian_track
+from database import push_pedestrian_track
 
 # comment out below line to enable tensorflow logging outputs
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -213,9 +213,6 @@ def main(_argv):
 
             count_in_one_second.append(count)
             stop_detection_time = start_detection_time + datetime.timedelta(seconds=frame_num / 25)
-            if len(count_in_one_second) == 25:
-                push_counted_pedestrians(max(count_in_one_second), stop_detection_time)
-                count_in_one_second = []
 
             if frame_num % 7500 == 0:
                 push_pedestrian_track(start_interval_time, stop_detection_time,
