@@ -46,11 +46,10 @@ flags.DEFINE_string('video', 'http://live.uci.agh.edu.pl/video/stream2.cgi?start
 flags.DEFINE_string('output', None, 'path to output video')
 flags.DEFINE_string('output_format', 'XVID', 'codec used in VideoWriter when saving video to file')
 flags.DEFINE_float('iou', 0.25, 'iou threshold')
-flags.DEFINE_float('score', 0.25, 'sco'
-                                 're threshold')
+flags.DEFINE_float('score', 0.25, 'score threshold')
 flags.DEFINE_boolean('dont_show', False, 'dont show video output')
 flags.DEFINE_boolean('info', False, 'show detailed info of tracked objects')
-flags.DEFINE_boolean('count', True, 'count objects being tracked on screen')
+flags.DEFINE_boolean('count', False, 'count objects being tracked on screen')
 
 
 def main(_argv):
@@ -76,8 +75,8 @@ def main(_argv):
     session = InteractiveSession(config=config)
     STRIDES, ANCHORS, NUM_CLASS, XYSCALE = utils.load_config(FLAGS)
     input_size = FLAGS.size
-    video_path = FLAGS.video
-    # video_path = 'data/video/test4.avi'
+    # video_path = FLAGS.video
+    video_path = 'data/video/test4.avi'
 
     # load tflite model if flag is set
     if FLAGS.framework == 'tflite':
@@ -214,14 +213,6 @@ def main(_argv):
             count_in_one_second.append(count)
             stop_detection_time = start_detection_time + datetime.timedelta(seconds=frame_num / 25)
 
-            if frame_num % 7500 == 0:
-                push_pedestrian_track(start_interval_time, stop_detection_time,
-                                      len(pedestrians_counter.pedestrians_coming_up),
-                                      len(pedestrians_counter.pedestrians_coming_down))
-                pedestrians_counter.pedestrians_coming_up = []
-                pedestrians_counter.pedestrians_coming_down = []
-                start_interval_time = stop_detection_time
-
             # delete detections that are not in allowed_classes
             bboxes = np.delete(bboxes, deleted_indx, axis=0)
             scores = np.delete(scores, deleted_indx, axis=0)
@@ -274,8 +265,9 @@ def main(_argv):
                     count = count - 1
                     continue
 
-                if track.track_id and bbox[1]:
-                    pedestrians_counter.gather_all_pedestrians(int(bbox[0]), int(bbox[1]), frame_num, track.track_id)
+                # if track.track_id and bbox[1]:
+                pedestrians_counter.gather_all_pedestrians(int(bbox[0]), int(bbox[1]), frame_num, track.track_id,
+                                                           int(bbox[2]), int(bbox[3]))
 
                 # draw bbox on screen
                 color = colors[int(track.track_id) % len(colors)]
@@ -296,9 +288,10 @@ def main(_argv):
                             int(bbox[1]),
                             int(bbox[2]),
                             int(bbox[3]))))
-
+            # frame = cv2.convertScaleAbs(frame, alpha=1, beta=10)
             result = np.asarray(frame)
             # result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+            result = cv2.convertScaleAbs(result, alpha=1, beta=60)
 
             if not FLAGS.dont_show:
                 cv2.imshow("Output Video", result)
@@ -312,6 +305,7 @@ def main(_argv):
         print("No config file provided! Exiting app...")
 
     cv2.destroyAllWindows()
+
 
 if __name__ == '__main__':
     try:
